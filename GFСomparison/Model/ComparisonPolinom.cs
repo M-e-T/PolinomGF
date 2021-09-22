@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using GFLib;
+using GFLib.AbstractFactory;
 using GFLib.Interface;
 
 namespace GFСomparison.Model
@@ -32,12 +33,12 @@ namespace GFСomparison.Model
         }
         public event Action ProgressEvent;
 
-        private IPolinom Classic;
-        private IPolinom Liner;
+        private IPolynomials Classic;
+        private IPolynomials Liner;
         public ComparisonPolinom(int toBase)
         {
-            Classic = new PolinomClassic(toBase);
-            Liner = new PolinomLiner(toBase);
+            Classic = PolynomialGFFactory.GetFactoryClassic(toBase);
+            Liner = PolynomialsFactory.GetFactoryLiner(toBase);
         }
         public async Task Generate(int power)
         {
@@ -50,7 +51,7 @@ namespace GFСomparison.Model
         }
         private void Comparison()
         {
-            PolinomComparison = Liner.Polynomials.Except(Classic.Polynomials, new PolinomCompare()).ToList();
+            PolinomComparison = Liner.Items.Except(Classic.Items, new PolinomCompare()).ToList();
         }    
         public void Cansel()
         {

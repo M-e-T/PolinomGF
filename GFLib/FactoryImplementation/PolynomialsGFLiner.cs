@@ -5,13 +5,13 @@ using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace GFLib
+using GFLib.AbstractFactory;
+
+namespace GFLib.FactoryImplementation
 {
-    public class PolinomLiner : Polinom
-    {        
-        private int[] StartRes;
-        private new int[][]Dividers = new int[][]{ };
-        private PolinomClassic PolinomClassic;
+    public class PolynomialsGFLiner : PolynomialGFFactory
+    {
+        private PolynomialsGFClassic PolinomClassic;
         private Dictionary<int, int[]> ExclusivePower = new Dictionary<int, int[]>()
         {
             {12, new int[] { 2 } },
@@ -21,10 +21,10 @@ namespace GFLib
             {28, new int[] { 2 } },
             {30, new int[] { 2, 3, 5 } },
         };
-        public PolinomLiner(int toBase) : base(toBase)
+        private int[] StartRes;
+        public PolynomialsGFLiner(int toBase) : base(toBase)
         {
-            Dividers = PolynomialsFirstPower[toBase];
-            PolinomClassic = new PolinomClassic(toBase);
+            PolinomClassic = new PolynomialsGFClassic(toBase);
         }
         public override async Task GenerateDetermAsync(int power)
         {
@@ -32,7 +32,7 @@ namespace GFLib
             await GenerateDividers();
             StartRes = FastPow(ToBase - 1).ToString().Select(x => x - '0').ToArray();
 
-            Polynomials = await StartAsync();
+            Items = await StartAsync();
         }
         public override async Task GenerateStohasAsync(int power, int countPolinom)
         {
@@ -40,10 +40,10 @@ namespace GFLib
             CountGenerate = countPolinom;
             await GenerateDividers();
 
-            Polynomials.Clear();
-            Persent = PersentProgress(Min(Power), Max(Power));
-            cts = new CancellationTokenSource();
-            token = cts.Token;
+            Items.Clear();
+            Persent = PersentProgress(countPolinom, 0);
+            Cts = new CancellationTokenSource();
+            Token = Cts.Token;
             StartRes = FastPow(ToBase - 1).ToString().Select(x => x - '0').ToArray();
 
             var taskList = Enumerable.Range(0, Environment.ProcessorCount).Select(x => Task.Run(() => GenerateStohas(Min(Power), Max(Power))));
@@ -52,16 +52,17 @@ namespace GFLib
         }
         private async Task<List<int[]>> StartAsync()
         {
-            int countTask = Environment.ProcessorCount;
-            long difference = (Max(Power) + 1 - Min(Power)) / countTask;
+            //int countTask = Environment.ProcessorCount;
+            int countTask = 1;
+            long difference = (long)(Max(Power) + 1 - Min(Power)) / countTask;
 
             var taskList = new List<Task<List<int[]>>>() { };
-            cts = new CancellationTokenSource();
-            token = cts.Token;
+            Cts = new CancellationTokenSource();
+            Token = Cts.Token;
             for (int i = 0; i < countTask; i++)
             {
-                long minValue = Min(Power) + difference * i;
-                long maxValue = i == countTask - 1 ? Max(Power) : Min(Power) + difference * (i + 1);
+                long minValue = (long)Min(Power) + difference * i;
+                long maxValue = i == countTask - 1 ? (long)Max(Power) : (long)Min(Power) + difference * (i + 1);
                 bool progres = i == 0 ? true : false;
                 taskList.Add(Task.Run(() => GenerateDeterm(minValue, maxValue, progres)));
             }
@@ -72,7 +73,7 @@ namespace GFLib
         {
             Persent = PersentProgress(min, max);
             var polinoms = new List<int[]>();
-            while (min < max && token.IsCancellationRequested == false)
+            while (min < max && IsCansel == false)
             {
                 int[] testPolinom = IntToArray(min, Power);
                 if (testPolinom[Power] > 0 && CheckDivision(testPolinom) == false)
@@ -84,7 +85,7 @@ namespace GFLib
                 }
                 if (progress == true && min % Persent == 0)
                 {
-                    Progress = (int)((double)(min - Min(Power)) / (max - Min(Power)) * 100);
+                    Progress = (int)((double)(min - (long)Min(Power)) / (max - (long)Min(Power)) * 100);
                 }
                 min++;
             }
@@ -95,10 +96,10 @@ namespace GFLib
             var randomBigInteger = new RandomBigInteger();
             int CountTestingPolinom = 0;
 
-            while (token.IsCancellationRequested == false)
+            while (IsCansel == false)
             {
                 int[] testPolinom = IntToArray(randomBigInteger.NextBigInteger(min, max), Power);
-                if (testPolinom[Power] > 0 )
+                if (testPolinom[Power] > 0 && CheckDivision(testPolinom) == false)
                 {
                     CountTestingPolinom++;
                     if (IsPolinom(testPolinom) == true)
@@ -117,10 +118,10 @@ namespace GFLib
                 for (int i = 0; i < value.Length; i++)
                 {
                     await PolinomClassic.GenerateDetermAsync(value[i]);
-                    tmpList.AddRange(PolinomClassic.Polynomials);
+                    tmpList.AddRange(PolinomClassic.Items);
                 }
-                tmpList.InsertRange(0, Dividers);
-                Dividers = tmpList.ToArray();
+                //tmpList.InsertRange(0, Dividers);
+                Dividers.Add(tmpList.ToArray());
             }
         }
         private protected override bool IsPolinom(int[] testPolinom)
@@ -142,17 +143,18 @@ namespace GFLib
             }
             return false;
         }
-        private bool CheckDivision(int[] divided)
+        private bool CheckDivision(int[] testPlynom)
         {
-            for(int i = 0; i < Dividers.Length; i++)
+            for (int n = 0; n < Dividers.Count; n++)
             {
-                if(DivederByModul(CopyArr(divided), Dividers[i]).Length == 0)
-                {
-                    return true;
-                }
+                for (int m = 0; m < Dividers[n].Length; m++)
+                    if (DivederByModul(CopyArr(testPlynom), Dividers[n][m]).Length == 0)
+                    {
+                        return true;
+                    }
             }
-            return false;
-        }    
+            return false;     
+        }
         private BigInteger FastPow(BigInteger pow)
         {
             BigInteger result = 1;

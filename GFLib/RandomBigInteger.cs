@@ -68,5 +68,4 @@ namespace GFLib
             return ((NextBigInteger(bits + 1) * res) / BigInteger.Pow(2, bits + 1)) + start;
         }
     }
-
 }

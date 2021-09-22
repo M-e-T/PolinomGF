@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GFClassic"
         mc:Ignorable="d"
-        Title="Класик GF(p)" MinHeight="450" MinWidth="800" Height="450" Width="800">
+        Title="Класик GF(p)" MinHeight="450" MinWidth="800" Height="450" Width="800" ContentRendered="Window_ContentRendered">
     <Window.Resources>
         <Style TargetType="Control" x:Key="baseStyle">
             <Setter Property="FontSize" Value="14pt"/>
@@ -57,13 +57,13 @@
                 SelectedIndex="0"
                 HorizontalContentAlignment="Center"
                 VerticalContentAlignment="Center"
-                IsEnabled="{Binding IsEnabled, ElementName=ButtonStart}">
+                IsEnabled="{Binding IsEnabled, ElementName=ButtonStart}" DropDownClosed="ComboBoxBase_DropDownClosed">
+                <ComboBoxItem Content="2"/>
                 <ComboBoxItem Content="3"/>
                 <ComboBoxItem Content="5"/>
                 <ComboBoxItem Content="7"/>
                 <ComboBoxItem Content="11"/>
                 <ComboBoxItem Content="13"/>
-                <ComboBoxItem Content="17"/>
             </ComboBox>
             <Button x:Name="ButtonStop" 
                     Content="Стоп" 

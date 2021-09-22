@@ -43,15 +43,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BigIntegerHelper.cs" />
+    <Compile Include="AbstractFactory\PolynomialGFFactory.cs" />
+    <Compile Include="AbstractFactory\PolynomialsBinaryFactory.cs" />
+    <Compile Include="AbstractFactory\PolynomialsFactory.cs" />
+    <Compile Include="FactoryImplementation\PolynomialsGFClassic.cs" />
+    <Compile Include="FactoryImplementation\PolynomialsGFLiner.cs" />
+    <Compile Include="FactoryImplementation\PolynomialsBinaryClassic.cs" />
+    <Compile Include="FactoryImplementation\PolynomialsBinaryLiner.cs" />
     <Compile Include="PolinomCompare.cs" />
-    <Compile Include="Interface\IPolinom.cs" />
-    <Compile Include="Polinom.cs" />
-    <Compile Include="PolinomClassic.cs" />
+    <Compile Include="Interface\IPolynomials.cs" />
     <Compile Include="ModularArithmetic.cs" />
-    <Compile Include="PolinomLiner.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RandomBigInteger.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

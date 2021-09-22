@@ -5,11 +5,13 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Threading.Tasks;
 
 using GFLib;
+using GFLib.FactoryImplementation;
 using GFStochasticMono.Model;
-using System.Threading.Tasks;
 using GFLib.Interface;
+using GFLib.AbstractFactory;
 
 namespace GFStochasticMono
 {
@@ -18,7 +20,7 @@ namespace GFStochasticMono
     /// </summary>
     public partial class MainWindow : Window
     {
-        private IPolinom Polinom;
+        private IPolynomials Polinom;
         private SaveSettings saveSettings = new SaveSettings();
 
         private DateTime timeStart;
@@ -53,7 +55,7 @@ namespace GFStochasticMono
                     ButtonStart.IsEnabled = false;
                     ButtonStop.IsEnabled = true;
                     ListBoxOne.Items.Clear();
-                    Polinom = new PolinomLiner(ToBase);
+                    Polinom = PolynomialsFactory.GetFactoryLiner(ToBase);// new PolynomialsGFLiner(ToBase);
                     Polinom.ProgressEvent += () =>
                     {
                         Dispatcher.Invoke(() =>
@@ -108,14 +110,10 @@ namespace GFStochasticMono
                 }
             }
             else
-                await Task.Run(() => {
-                    for (int i = 0; i < Polinom.Count; i++)
-                    {
-                        Dispatcher.Invoke(() => { 
-                            ListBoxOne.Items.Add(i + 1 + ") --- " + string.Join("", Polinom.Polynomials[i]));
-                        });
-                    }
-                });
+                for (int i = 0; i < Polinom.Count; i++)
+                {
+                        ListBoxOne.Items.Add(i + 1 + ") --- " + Polinom.ToString(Polinom[i]));
+                }
 
             LabelMessage.VCC(Visibility.Visible, Polinom.IsCansel ? Brushes.Red : Brushes.Green, Polinom.IsCansel ? "Процес отменен!" : "Процесс завершен!");
             timeAllOne = DateTime.Now - timeStart;

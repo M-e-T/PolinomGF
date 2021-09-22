@@ -36,7 +36,7 @@ namespace GFStochasticMono.Model
             saveSettings = settings;
         }
         //public async Task Save(string filename, List<int[]> saveList, int tobase, int countSymbol)
-        public async Task Save(string filename, IPolinom polinom, int countSymbol)
+        public async Task Save(string filename, IPolynomials polinom, int countSymbol)
         {
             Task task = new Task(() =>
             {

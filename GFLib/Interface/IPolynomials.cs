@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace GFLib.Interface
 {
-    public interface IPolinom
+    public interface IPolynomials
     {
         event Action ProgressEvent;
         int Power { get; }
@@ -16,9 +16,14 @@ namespace GFLib.Interface
         int Progress { get; }
         bool IsCansel { get; }
         int[] this[int index] { get; }
-        List<int[]> Polynomials { get; }
+        List<int[]> Items { get; }
         Task GenerateDetermAsync(int power);
         Task GenerateStohasAsync(int power, int countPolinom);
+        string ToString(int[] polinom);
         void Cansel();
+    }
+    public interface It
+    {
+
     }
 }

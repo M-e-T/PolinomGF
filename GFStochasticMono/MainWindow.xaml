@@ -96,6 +96,7 @@
                       IsEnabled="{Binding IsEnabled, ElementName=ButtonStart}"
                       HorizontalContentAlignment="Center"
                       VerticalContentAlignment="Center">
+                      <ComboBoxItem Content="2"/>
                       <ComboBoxItem Content="3"/>
                       <ComboBoxItem Content="5"/>
                       <ComboBoxItem Content="7"/>

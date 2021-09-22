@@ -4,92 +4,79 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using GFLib.FactoryImplementation;
 using GFLib.Interface;
 
-namespace GFLib
+namespace GFLib.AbstractFactory
 {
-    public abstract class Polinom : ModularArithmetic, IPolinom
+    public abstract class PolynomialsFactory : ModularArithmetic, IPolynomials
     {
         public event Action ProgressEvent;
-
-        private int power;
-        public int Power 
+        private int _power;
+        public virtual int Power
         {
-            get { return power; } 
-            internal set
+            get { return _power; }
+            set
             {
-                if ((Math.Pow(ToBase, value) + 1) > long.MaxValue)
-                    throw new ArgumentException(nameof(power), "Max power 39 ");
-                if ((Math.Pow(ToBase, value) + 1) < 1)
-                    throw new ArgumentException(nameof(power), "Min power 1");
-                power = value;
-            } 
+                _power = value;
+            }
         }
+        public virtual int MaxPower { get; internal set; }
         public int ToBase { get; }
+        public int CountGenerate { get; protected set; }
+        public BigInteger CountTesting { get; private set; }
         public int Count
         {
             get
             {
-                return Polynomials.Count;
+                return Items.Count;
             }
         }
-        public int CountGenerate { get; protected set; }
-        public BigInteger CountTesting { get; private set; }
-        public bool IsCansel 
+        public bool IsCansel
         {
             get
             {
-                return token.IsCancellationRequested;
-            } 
-        } 
-        private int progress;
+                return Token.IsCancellationRequested;
+            }
+        }
+        private int _progress;
         public int Progress
         {
             get
             {
-                return progress;
+                return _progress;
             }
             protected set
             {
-                progress = value;
+                _progress = value;
                 ProgressEvent?.Invoke();
             }
         }
-        private List<int[]> polynomials = new List<int[]>();
-        public List<int[]> Polynomials
+        private List<int[]> _item = new List<int[]>();
+        public List<int[]> Items
         {
             get
             {
-                return polynomials;
+                return _item;
             }
             private protected set
             {
-                polynomials = value;
+                _item = value;
             }
         }
         public int[] this[int index]
         {
             get
             {
-                return Polynomials[index];
+                return Items[index];
             }
         }
-        private List<int[][]> dividers = new List<int[][]>();
-        protected List<int[][]> Dividers
-        {
-            get
-            {
-                return dividers;
-            }
-            set
-            {
-                dividers = value;
-            }
-        }
+        protected CancellationTokenSource Cts;
+        protected CancellationToken Token;
         protected object balanceLock = new object();
-        protected CancellationTokenSource cts;
-        protected CancellationToken token;
         protected long Persent { get; set; }
+
+        private static readonly char[] BaseChars = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C' };
         protected readonly Dictionary<int, int[][]> PolynomialsFirstPower = new Dictionary<int, int[][]>()
         {
             {2, new int[][] { new int[] { 1, 1 } } },
@@ -103,43 +90,41 @@ namespace GFLib
         };
         public abstract Task GenerateDetermAsync(int power);
         public abstract Task GenerateStohasAsync(int power, int countPolinom);
-        private protected abstract bool IsPolinom(int[] testPolinom);
-        public Polinom(int toBase) : base(toBase)
+        public PolynomialsFactory(int toBase) : base(toBase)
         {
             ToBase = toBase;
-            Dividers.Add(PolynomialsFirstPower[toBase]);
         }
         public void Cansel()
         {
-            if (cts != null)
-                cts.Cancel();
+            if (Cts != null)
+                Cts.Cancel();
         }
         public void Sort()
         {
-            Polynomials.Sort(new PolinomCompare());
+            Items.Sort(new PolinomCompare());
         }
         protected void Add(int[] polinom, BigInteger countTest)
         {
             lock (balanceLock)
             {
                 CountTesting += countTest;
-                if (Polynomials.Count < CountGenerate && Contains(polinom) == false && Dualpolynomial(polinom) == false)
+                if (Count < CountGenerate && Contains(polinom) == false && Dualpolynomial(polinom) == false)
                 {
-                    Polynomials.Add(polinom);
-                    if (Polynomials.Count % Persent == 0)
+                    Items.Add(polinom);
+                    if (Items.Count % Persent == 0)
                     {
-                        Progress = (int)((double)(Polynomials.Count) / (CountGenerate) * 100);
+                        Progress = (int)((double)(Items.Count) / (CountGenerate) * 100);
                     }
                 }
-                if (CountGenerate == Polynomials.Count)
-                    cts.Cancel();
+                if (CountGenerate == Items.Count)
+                    Cts.Cancel();
             }
-        }  
-        protected long Min(int power)
-        {
-            return (long)Math.Pow(ToBase, power) + 1;
         }
-        protected long Max(int power)
+        protected BigInteger Min(int power)
+        {
+            return BigInteger.Pow(ToBase, power) + 1;
+        }
+        protected BigInteger Max(int power)
         {
             return Min(power) * 2 - ToBase + (ToBase - 2);
         }
@@ -161,9 +146,9 @@ namespace GFLib
         }
         protected bool Contains(int[] polinom)
         {
-            for(int i = 0; i < Polynomials.Count; i++)
+            for (int i = 0; i < Items.Count; i++)
             {
-                if (Enumerable.SequenceEqual(Polynomials[i], polinom) == true)
+                if (Enumerable.SequenceEqual(Items[i], polinom) == true)
                     return true;
             }
             return false;
@@ -177,12 +162,49 @@ namespace GFLib
             }
             return Contains(polinom);
         }
-        protected long PersentProgress(long min, long max)
+        protected long PersentProgress(BigInteger min, BigInteger max)
         {
-            long Persent = (max - min) / 100;
+            long Persent = (long)((max - min) / 100);
             if (Persent == 0)
                 Persent++;
             return Persent;
+        }
+        public string ToString(int[] polinom)
+        {
+            string res = "";
+            for (int i = 0; i < polinom.Length; i++)
+            {
+                res += BaseChars[polinom[i]];
+            }
+            return res;
+        }
+        private protected static string ToString(BigInteger value, int tobase)
+        {
+            if (tobase > BaseChars.Length)
+                throw new ArgumentException(nameof(tobase) + $"Max Base {BaseChars.Length}");
+            string result = string.Empty;
+            int targetBase = tobase;
+
+            do
+            {
+                result = BaseChars[(int)(value % targetBase)] + result;
+                value = value / targetBase;
+            }
+            while (value > 0);
+
+            return result;
+        }
+        public static PolynomialsFactory GetFactoryClassic(int toBase)
+        {
+            if (toBase == 2)
+                return new PolynomialsBinaryClassic(toBase);
+            return new PolynomialsGFClassic(toBase);
+        }
+        public static PolynomialsFactory GetFactoryLiner(int toBase)
+        {
+            if (toBase == 2)
+                return new PolynomialsBinaryLiner(toBase);
+            return new PolynomialsGFLiner(toBase);
         }
     }
 }

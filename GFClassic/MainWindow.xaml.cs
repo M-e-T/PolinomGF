@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -8,9 +7,9 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
 
+using GFLib.AbstractFactory;
+using GFLib.FactoryImplementation;
 using GFClassic.Model;
-using GFLib;
-using GFLib.Interface;
 
 namespace GFClassic
 {
@@ -19,13 +18,13 @@ namespace GFClassic
     /// </summary>
     public partial class MainWindow : Window
     {
-        IPolinom PolinomClassic;
+        PolynomialsFactory PolynomialsGF;
+        DateTime timeStart;
+        TimeSpan timeAllOne;
         public MainWindow()
         {
             InitializeComponent();
         }
-        DateTime timeStart;
-        TimeSpan timeAllOne;
 
         private void TextBox_Read_KeyDown(object sender, KeyEventArgs e)
         {
@@ -49,16 +48,7 @@ namespace GFClassic
                     ButtonStart.IsEnabled = false;
                     ButtonStop.IsEnabled = true;
                     ListBoxOne.Items.Clear();
-                    PolinomClassic = new PolinomClassic(int.Parse(ComboBoxBase.Text));
-                    PolinomClassic.ProgressEvent += () =>
-                    {
-                        Dispatcher.Invoke((Action)(() =>
-                        {
-                            ProgresOne.Value = PolinomClassic.Progress;
-                            LabelProgres.Content = PolinomClassic.Progress + "%";
-                        }));
-                    };
-                    await PolinomClassic.GenerateDetermAsync(LengthPoli);
+                    await PolynomialsGF.GenerateDetermAsync(LengthPoli);
                     CompleteGenerate();
                 }
             }
@@ -70,12 +60,12 @@ namespace GFClassic
 
         private void Button_Stop_Click(object sender, RoutedEventArgs e)
         {
-            PolinomClassic?.Cansel();
+            PolynomialsGF?.Cansel();
         }
         private async void CompleteGenerate()
         {
             int toBase = int.Parse(ComboBoxBase.Text);
-            string t = PolinomClassic.Count.ToString("C0");
+            string t = PolynomialsGF.Count.ToString("C0");
             t = t.Remove(t.Length - 1);
             LabelCountPolinom.Content = "Число полиномов: " + t;
             ProgresOne.Value = 100;
@@ -85,26 +75,22 @@ namespace GFClassic
                 SaveFileExcel savefile = new SaveFileExcel();
                 savefile.Progres += () =>
                 {
-                    Dispatcher.Invoke((Action)(() =>
+                    Dispatcher.Invoke(() =>
                     {
                         ProgresOne.Value = savefile.Progress;
                         LabelProgres.Content = savefile.Progress + "%";
 
-                    }));
+                    });
                 };
-                await savefile.Save(filename, PolinomClassic.Polynomials);
+                await savefile.Save(filename, PolynomialsGF.Items);
             }
             else
-            await Task.Run(() => {    
-                for (int i = 0; i < PolinomClassic.Count; i++)
-                {
-                    Dispatcher.Invoke(() => { 
-                        ListBoxOne.Items.Add(i + 1 + ") --- " + string.Join("", PolinomClassic[i]));
-                    });
-                }
-            });
+            for (int i = 0; i < PolynomialsGF.Count; i++)
+            {
+                ListBoxOne.Items.Add(i + 1 + ") --- " + PolynomialsGF.ToString(PolynomialsGF[i]));
+            }
 
-            LabelMessage.VCC(Visibility.Visible, PolinomClassic.IsCansel ? Brushes.Red : Brushes.Green, PolinomClassic.IsCansel ? "Процес отменен!" : "Процесс завершен!");
+            LabelMessage.VCC(Visibility.Visible, PolynomialsGF.IsCansel ? Brushes.Red : Brushes.Green, PolynomialsGF.IsCansel ? "Процес отменен!" : "Процесс завершен!");
             timeAllOne = DateTime.Now - timeStart;
             LabelTime.Content = timeAllOne.ToString(@"hh\:mm\:ss\:fff");
             ProgresOne.ProgressDefault();
@@ -119,10 +105,11 @@ namespace GFClassic
             try
             {
                 int power = Convert.ToInt32(TextBoxPower.Text);
-                if (power > 39)
+                int maxPower = PolynomialsGF.MaxPower;
+                if (power > maxPower)
                 {
-                    TextBoxPower.Text = "39";
-                    LabelMessage.VCC(Visibility.Visible, Brushes.Red, "Максимальная степень 39");
+                    TextBoxPower.Text = maxPower.ToString();
+                    LabelMessage.VCC(Visibility.Visible, Brushes.Red, $"Максимальная степень { maxPower }");
                 }
                 else
                     LabelMessage.VCC(Visibility.Hidden, Brushes.Red);
@@ -155,7 +142,7 @@ namespace GFClassic
         }
         private void RadioButton_Checked(object sender, RoutedEventArgs e)
         {
-            RadioButton rb = (sender as RadioButton);
+            RadioButton rb = sender as RadioButton;
             switch (rb.Name)
             {
                 case "RadiButtonSave":
@@ -203,6 +190,24 @@ namespace GFClassic
         private void TextBox_Save_TextChanged(object sender, TextChangedEventArgs e)
         {
             filename = TextBoxFilePath.Text;
+        }
+
+        private void ComboBoxBase_DropDownClosed(object sender, EventArgs e)
+        {
+            PolynomialsGF = PolynomialsFactory.GetFactoryClassic(int.Parse(ComboBoxBase.Text));
+            PolynomialsGF.ProgressEvent += () =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    ProgresOne.Value = PolynomialsGF.Progress;
+                    LabelProgres.Content = PolynomialsGF.Progress + "%";
+                });
+            };
+            TextBox_Read_TextChanged(TextBoxPower, null);
+        }
+        private void Window_ContentRendered(object sender, EventArgs e)
+        {
+            ComboBoxBase_DropDownClosed(null, null);
         }
     }
     public static class EX
